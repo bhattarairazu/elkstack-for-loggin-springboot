@@ -1,0 +1,127 @@
+#version: "3.7"
+#services:
+#  elasticsearch:
+#    image: docker.elastic.co/elasticsearch/elasticsearch:7.12.0
+#    container_name: elasticsearch
+#    restart: always
+#    environment:
+#      - xpack.security.enabled=false
+#      - discovery.type=single-node
+#    ulimits:
+#      memlock:
+#        soft: -1
+#        hard: -1
+#      nofile:
+#        soft: 65536
+#        hard: 65536
+#    cap_add:
+#      - IPC_LOCK
+##    volumes:
+##      - elasticsearch-data-volume:/usr/share/elasticsearch/data
+#    ports:
+#      - "9200:9200"
+#  kibana:
+#    container_name: kibana
+#    image: docker.elastic.co/kibana/kibana:7.12.0
+#    restart: always
+#    environment:
+#      SERVER_NAME: kibana
+#      ELASTICSEARCH_HOSTS: http://elasticsearch:9200
+#    ports:
+#      - "5601:5601"
+#    depends_on:
+#      - elasticsearch
+#  logstash:
+#    container_name: logstash
+#    image: docker.elastic.co/logstash/logstash:8.7.1
+#    restart: always
+#    volumes:
+#      - ./logstash/config/logstash.yml:/usr/share/logstash/config/logstash.yml
+##      - ./logstash/pipeline:/usr/share/logstash/pipeline
+#    environment:
+#      - "XPACK_MONITORING_ENABLED=false"
+#    ports:
+#      - "5044:5044"
+#      - "9600:9600"
+#    depends_on:
+#      - elasticsearch
+#volumes:
+#  elasticsearch-data-volume:
+#    driver: local
+
+
+
+version: "3"
+
+services:
+  elasticsearch:
+    image: docker.elastic.co/elasticsearch/elasticsearch:7.12.0
+    container_name: elasticsearch_springboot
+    environment:
+      - bootstrap.memory_lock=false
+      - "ES_JAVA_OPTS=-Xms512m -Xmx512m"
+      - "discovery.type=single-node"
+      - xpack.security.enabled=false
+    ports:
+      - "9200:9200"
+    volumes:
+      - elasticsearch_data:/usr/share/elasticsearch/data
+    networks:
+      - elastic
+
+  kibana:
+    image: docker.elastic.co/kibana/kibana:7.12.0
+    container_name: kibana_springboot
+    ports:
+      - "5601:5601"
+    environment:
+      ELASTICSEARCH_URL: http://elasticsearch:9200
+      ELASTICSEARCH_HOSTS: '["http://elasticsearch:9200"]'
+    depends_on:
+      - elasticsearch
+    networks:
+      - elastic
+  logstash:
+    image: docker.elastic.co/logstash/logstash:8.3.3
+    container_name: logstash_springboot
+    volumes:
+#      - ./logstash/config/logstash.yml:/usr/share/logstash/config/logstash.yml:ro
+      - ./logstash/config:/usr/share/logstash/config:rw
+      - ./logstash/pipeline:/usr/share/logstash/pipeline:ro
+    environment:
+      - "XPACK_MONITORING_ENABLED=false"
+    ports:
+      - "5044:5044"
+      - "5000:5000"
+      - "9600:9600"
+    depends_on:
+      - elasticsearch
+    networks:
+      - elastic
+
+#
+#  logstash:
+#    image: docker.elastic.co/logstash/logstash:8.3.3
+#    container_name: logstash_springboot
+#    volumes:
+#      - ./logstash/config/logstash.yml:/usr/share/logstash/config/logstash.yml:ro
+#      - ./logstash/pipeline:/usr/share/logstash/pipeline:ro
+#    ports:
+#      - "5044:5044"
+#      - "5000:5000/tcp"
+#      - "5000:5000/udp"
+#      - "9600:9600"
+#    environment:
+#      LS_JAVA_OPTS: "-Xmx256m -Xms256m"
+#    networks:
+#      - elastic
+#    depends_on:
+#      - elasticsearch
+#
+networks:
+  elastic:
+    driver: bridge
+#
+volumes:
+  elasticsearch_data:
+    driver: local
